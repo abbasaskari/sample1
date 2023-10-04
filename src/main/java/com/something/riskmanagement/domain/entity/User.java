@@ -53,7 +53,7 @@ public class User extends BaseEntity {
             joinColumns = @JoinColumn(name = "USER_ID", referencedColumnName = "ID"),
             inverseJoinColumns = @JoinColumn(name = "ROLE_ID", referencedColumnName = "ID")
     )
-    private Role role;
+    private Role mainRole;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private UserLoginAttempt loginAttempt;
@@ -106,12 +106,12 @@ public class User extends BaseEntity {
         this.password = password;
     }
 
-    public Role getRole() {
-        return role;
+    public Role getMainRole() {
+        return mainRole;
     }
 
-    public void setRole(Role role) {
-        this.role = role;
+    public void setMainRole(Role mainRole) {
+        this.mainRole = mainRole;
     }
 
     public Boolean getActive() {

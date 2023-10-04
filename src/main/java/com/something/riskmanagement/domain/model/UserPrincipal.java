@@ -20,6 +20,7 @@ public class UserPrincipal implements UserDetails {
     private String username;
     private String password;
     private String roleName;
+    private String unitCode;
     private String desc;
     private String token;
     private Date loginTime;
@@ -47,6 +48,14 @@ public class UserPrincipal implements UserDetails {
 
     public void setRoleName(String roleName) {
         this.roleName = roleName;
+    }
+
+    public String getUnitCode() {
+        return unitCode;
+    }
+
+    public void setUnitCode(String unitCode) {
+        this.unitCode = unitCode;
     }
 
     public String getDesc() {

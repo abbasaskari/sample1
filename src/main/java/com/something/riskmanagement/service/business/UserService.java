@@ -16,8 +16,8 @@ import com.something.riskmanagement.domain.entity.*;
 import com.something.riskmanagement.domain.model.UserModel;
 import com.something.riskmanagement.domain.model.UserPrincipal;
 import com.something.riskmanagement.domain.model.UserProfileModel;
+import com.something.riskmanagement.service.dao.EffectiveUserDao;
 import com.something.riskmanagement.service.dao.UserDao;
-import com.something.riskmanagement.service.dao.UserLoginAttemptDao;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -52,15 +52,17 @@ public class UserService implements UserFacade, UserDetailsService {
     private final JwtTokenProvider tokenProvider;
     private final AuthenticationProvider authenticationManager;
     private final UserDao userDao;
+    private final EffectiveUserDao effectiveUserDao;
     private final UserLoginAttemptService loginAttemptService;
 
     @Autowired
-    public UserService(ServiceProperties props, JwtTokenProvider tokenProvider, AuthenticationProvider authenticationManager, UserDao userDao, UserLoginAttemptService loginAttemptService) {
+    public UserService(ServiceProperties props, JwtTokenProvider tokenProvider, AuthenticationProvider authenticationManager, UserDao userDao, EffectiveUserDao effectiveUserDao, UserLoginAttemptService loginAttemptService) {
         this.props = props;
         this.messageUtil = new MessageUtil(props.getMessageFileNames());
         this.tokenProvider = tokenProvider;
         this.authenticationManager = authenticationManager;
         this.userDao = userDao;
+        this.effectiveUserDao = effectiveUserDao;
         this.loginAttemptService = loginAttemptService;
         this.userCache = new HashMap<>();
     }
@@ -190,14 +192,16 @@ public class UserService implements UserFacade, UserDetailsService {
             successLoginAttempt(user.getLoginAttempt());
         }
 
+        EffectiveUser eUser = effectiveUserDao.findByUserIaAndMainRoleId(user.getId(), user.getMainRole().getId());
+
         List<String> authorities;
         if (user.getChangePassword() || AuthenticationUtil.isPasswordExpired(user))
             authorities = List.of("User.logout", "User.changePassword", "User.getUserProfile");
         else
-            authorities = user.getRole().getServiceAuthorities().stream().map(ServiceAuthority::getName).collect(Collectors.toList());
+            authorities = user.getMainRole().getServiceAuthorities().stream().map(ServiceAuthority::getName).collect(Collectors.toList());
 
         Map<String, List<String>> entityAuthorityMap = new HashMap<>();
-        user.getRole().getEntityAuthorities().forEach(entityAuthority -> {
+        user.getMainRole().getEntityAuthorities().forEach(entityAuthority -> {
             AppEntity entity = entityAuthority.getEntity();
             String name = entity.getName();
             entityAuthorityMap.putIfAbsent(name, new ArrayList<>());
@@ -207,8 +211,9 @@ public class UserService implements UserFacade, UserDetailsService {
         UserPrincipal userPrincipal = new UserPrincipal();
         userPrincipal.setUsername(username);
         userPrincipal.setPassword(user.getPassword());
-        userPrincipal.setRoleName(user.getRole().getName());
-        userPrincipal.setDesc(user.getRole().getTitle());
+        userPrincipal.setRoleName(user.getMainRole().getName());
+        userPrincipal.setUnitCode(eUser.getUnit().getCode());
+        userPrincipal.setDesc(user.getMainRole().getTitle());
         userPrincipal.setServiceAuthorities(authorities);
         userPrincipal.setUiAuthorities(null);
         userPrincipal.setEntityAuthorities(entityAuthorityMap);
